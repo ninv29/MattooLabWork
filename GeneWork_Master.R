@@ -1,8 +1,3 @@
-# ================================================================
-# Final Combined SILAF + SILAC Analysis
-# Robust POI Detection, Fixed Shapes, White Background, Comparative Plots
-# ================================================================
-
 library(dplyr)
 library(tidyr)
 library(clusterProfiler)
@@ -11,23 +6,17 @@ library(org.Hs.eg.db)
 library(ggplot2)
 library(ggrepel)
 
-# ---------------------------
 # Load datasets
-# ---------------------------
 # SILAF_originaldata: Drosophila
 # SILAC_final: Human
 
-# ---------------------------
 # Convert numeric columns
-# ---------------------------
 SILAF_originaldata$halflife    <- as.numeric(as.character(SILAF_originaldata$halflife))
 SILAF_originaldata$MedianAbund <- as.numeric(as.character(SILAF_originaldata$MedianAbund))
 SILAC_final$halflife <- as.numeric(as.character(SILAC_final$halflife))
 SILAC_final$MedianAbund <- as.numeric(as.character(SILAC_final$MedianAbund))
 
-# ---------------------------
 # Robust POI detection
-# ---------------------------
 poi_patterns <- list(
   HYPE       = c("HYPE", "FicD"),
   BiP        = c("BiP", "GRP78", "HSPA5", "HspA5"),
@@ -61,9 +50,7 @@ find_POI <- function(df, poi_patterns) {
   return(df)
 }
 
-# ---------------------------
 # Data cleaning and k calculations
-# ---------------------------
 clean_sil_data <- function(df, poi_patterns) {
   hl_cut <- quantile(df$halflife, 0.99, na.rm = TRUE)
   ab_cut <- quantile(df$MedianAbund, 0.99, na.rm = TRUE)
@@ -83,9 +70,7 @@ clean_sil_data <- function(df, poi_patterns) {
 SILAF_clean <- clean_sil_data(SILAF_originaldata, poi_patterns)
 SILAC_clean <- clean_sil_data(SILAC_final, poi_patterns)
 
-# ---------------------------
 # Gene subsets & export
-# ---------------------------
 export_gene_subsets <- function(df, prefix) {
   fast <- df %>% filter(!is.na(halflife) & halflife < 5)
   write.csv(unique(fast$Gene), paste0("mattoolabwork/", prefix, "_fast_turnover_genes.csv"), row.names=FALSE)
@@ -105,9 +90,7 @@ export_gene_subsets <- function(df, prefix) {
 SILAF_subsets <- export_gene_subsets(SILAF_clean, "SILAF")
 SILAC_subsets <- export_gene_subsets(SILAC_clean, "SILAC")
 
-# ---------------------------
 # GO enrichment
-# ---------------------------
 convert_to_entrez <- function(gene_list, orgdb) {
   if (identical(orgdb, org.Dm.eg.db)) {
     gene_list <- gsub("Dmel\\\\", "", gene_list)
@@ -152,9 +135,7 @@ run_go <- function(fast, no, late, prefix, orgdb) {
 run_go(SILAF_subsets$fast, SILAF_subsets$no, SILAF_subsets$late, "SILAF", org.Dm.eg.db)
 run_go(SILAC_subsets$fast, SILAC_subsets$no, SILAC_subsets$late, "SILAC", org.Hs.eg.db)
 
-# ---------------------------
-# Volcano plot function with fixed POI shapes & white background
-# ---------------------------
+# Volcano plot function
 plot_volcano <- function(df, prefix) {
   volc_k0 <- df %>% dplyr::select(Gene, MedianAbund, k0, POI, POI_category)
   volc_kdeg <- df %>% dplyr::select(Gene, halflife, k_deg, POI, POI_category)
@@ -195,9 +176,7 @@ plot_volcano <- function(df, prefix) {
 plot_volcano(SILAF_clean, "SILAF")
 plot_volcano(SILAC_clean, "SILAC")
 
-# ---------------------------
-# Comparative analysis with combined legend
-# ---------------------------
+# Comparative analysis
 SILAF_POI <- SILAF_clean %>% filter(POI==TRUE) %>% mutate(Dataset="SILAF")
 SILAC_POI <- SILAC_clean %>% filter(POI==TRUE) %>% mutate(Dataset="SILAC")
 
@@ -230,4 +209,4 @@ p_comp_kdeg <- ggplot(combined_POI, aes(x=log10(halflife+1), y=log10(k_deg+1), c
 
 ggsave("mattoolabwork/Comparative_volcano_kdeg.png", p_comp_kdeg, width=8, height=6, dpi=300, bg="white")
 
-cat("Comparative analysis completed with combined legend and white background.\n")
+cat("Comparative analysis completed.\n")
